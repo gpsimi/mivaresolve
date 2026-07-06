@@ -1,0 +1,80 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Role {
+  id    String @id @default(uuid())
+  name  String @unique // e.g., "STUDENT_STAFF", "MAINTENANCE_OFFICER", "ADMINISTRATOR"
+  users User[]
+}
+
+model User {
+  id           String           @id @default(uuid())
+  email        String           @unique
+  passwordHash String
+  name         String
+  roleId       String
+  role         Role             @relation(fields: [roleId], references: [id])
+  requests     ServiceRequest[] @relation("Requester")
+  assignments  Assignment[]     @relation("Officer")
+  statusLogs   StatusLog[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+}
+
+model Category {
+  id       String           @id @default(uuid())
+  name     String           @unique // e.g., "Faulty Electricity", "Damaged Furniture", "Leaking Pipes", "Internet Problems", "Classroom Equipment", "Hostel Maintenance"
+  requests ServiceRequest[]
+}
+
+enum RequestStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+}
+
+model ServiceRequest {
+  id          String        @id @default(uuid())
+  title       String
+  description String
+  imageUrl    String?       // image upload for evidence of fault
+  status      RequestStatus @default(PENDING)
+  categoryId  String
+  category    Category      @relation(fields: [categoryId], references: [id])
+  requesterId String
+  requester   User          @relation("Requester", fields: [requesterId], references: [id])
+  assignments Assignment[]
+  statusLogs  StatusLog[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Assignment {
+  id         String         @id @default(uuid())
+  requestId  String
+  request    ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  officerId  String
+  officer    User           @relation("Officer", fields: [officerId], references: [id])
+  assignedAt DateTime       @default(now())
+}
+
+model StatusLog {
+  id        String         @id @default(uuid())
+  requestId String
+  request   ServiceRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  status    RequestStatus
+  updaterId String
+  updater   User           @relation(fields: [updaterId], references: [id])
+  comment   String?
+  createdAt DateTime       @default(now())
+}
+
